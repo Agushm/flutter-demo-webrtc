@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:demo_rtc/src/demo/demo_signaling.dart';
+import 'package:demo_rtc/src/utils/socket_client.dart';
 import 'package:demo_rtc/src/utils/utils.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class DemoScreen extends StatefulWidget {
-  final auth.User? user;
-  DemoScreen(this.user);
   @override
   _DemoScreenState createState() => _DemoScreenState();
 }
@@ -36,6 +34,7 @@ class _DemoScreenState extends State<DemoScreen> {
     super.initState();
     initRenderers();
     _connect();
+    SocketClient().connect('wss://echo.websocket.org');
   }
 
   initRenderers() async {
@@ -292,6 +291,11 @@ class _DemoScreenState extends State<DemoScreen> {
         RTCSessionDescription(description.sdp, description.type));
   }
 
+  void _sendToSocket() {
+    var message = _offerDescController.text;
+    SocketClient().sendMessage(message);
+  }
+
   SizedBox videoRenderers() => SizedBox(
       height: 210,
       child: Row(children: [
@@ -316,16 +320,7 @@ class _DemoScreenState extends State<DemoScreen> {
   Row offerAndAnswerButtons() =>
       Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: <Widget>[
         new MaterialButton(
-          // onPressed: () {
-          //   return showDialog(
-          //       context: context,
-          //       builder: (context) {
-          //         return AlertDialog(
-          //           content: Text(sdpController.text),
-          //         );
-          //       });
-          // },
-          onPressed: createOffer,
+          onPressed: _sendToSocket,
           child: Text('Offer'),
           color: Colors.blue,
         ),

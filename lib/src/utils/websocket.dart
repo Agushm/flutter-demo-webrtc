@@ -17,7 +17,7 @@ class SimpleWebSocket {
 
   connect() async {
     try {
-      //_socket = await WebSocket.connect(_url);
+      // _socket = await WebSocket.connect(_url);
       _socket = await _connectForSelfSignedCert(_url);
       onOpen?.call();
       _socket.listen((data) {
@@ -45,7 +45,7 @@ class SimpleWebSocket {
     try {
       Random r = new Random();
       String key = base64.encode(List<int>.generate(8, (_) => r.nextInt(255)));
-      HttpClient client = HttpClient(context: SecurityContext());
+      HttpClient client = HttpClient();
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
         print(
@@ -55,11 +55,6 @@ class SimpleWebSocket {
 
       HttpClientRequest request =
           await client.getUrl(Uri.parse(url)); // form the correct url here
-      request.headers.add('Connection', 'Upgrade');
-      request.headers.add('Upgrade', 'websocket');
-      request.headers.add(
-          'Sec-WebSocket-Version', '13'); // insert the correct version here
-      request.headers.add('Sec-WebSocket-Key', key.toLowerCase());
 
       HttpClientResponse response = await request.close();
       // ignore: close_sinks

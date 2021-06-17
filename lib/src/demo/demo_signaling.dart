@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import '../utils/websocket.dart'
+    if (dart.library.js) '../utils/websocket_web.dart';
 
 enum SignalingState {
   ConnectionOpen,
@@ -36,6 +40,8 @@ class Session {
 }
 
 class Signaling {
+  JsonEncoder _encoder = JsonEncoder();
+  JsonDecoder _decoder = JsonDecoder();
   MediaStream? _localStream;
   List<MediaStream> _remoteStreams = <MediaStream>[];
   Map<String, Session> _sessions = {};
@@ -45,6 +51,7 @@ class Signaling {
   OtherEventCallback? onPeersUpdate;
   DataChannelMessageCallback? onDataChannelMessage;
   DataChannelCallback? onDataChannel;
+  SimpleWebSocket? _socket;
 
   String get sdpSemantics =>
       WebRTC.platformIsWindows ? 'plan-b' : 'unified-plan';
@@ -83,6 +90,41 @@ class Signaling {
     /* Close Socket 
     *if (_socket != null) _socket?.close();
     */
+  }
+
+  Future<void> socketConnect() async {
+    var _port = 8086;
+    var url = 'ws://echo.websocket.org';
+    _socket = SimpleWebSocket(url);
+
+    _socket!.onOpen = () {
+      print('onOpen');
+      //onSignalingStateChange?.call(SignalingState.ConnectionOpen);
+      // _send('new', {
+      //   'name': DeviceInfo.label,
+      //   'id': _selfId,
+      //   'user_agent': DeviceInfo.userAgent
+      // });
+    };
+
+    _socket!.onMessage = (message) {
+      print('Received data: ' + message);
+      //onMessage(_decoder.convert(message));
+    };
+
+    _socket!.onClose = (int code, String reason) {
+      print('Closed by server [$code => $reason]!');
+      //onSignalingStateChange?.call(SignalingState.ConnectionClosed);
+    };
+
+    await _socket?.connect();
+  }
+
+  _send(event, data) {
+    var request = Map();
+    request["type"] = event;
+    request["data"] = data;
+    //_socket!.send(_encoder.convert(request));
   }
 
   Future<MediaStream> createStream(String media, bool? userScreen,
@@ -244,18 +286,16 @@ class Signaling {
       RTCSessionDescription s =
           await pc.createOffer(media == 'data' ? _dcConstraints : {});
       await pc.setLocalDescription(s);
-      // _send('offer', {
-      //   'to': session.pid,
-      //   'from': _selfId,
-      //   'description': {'sdp': s.sdp, 'type': s.type},
-      //   'session_id': session.sid,
-      //   'media': media,
-      // });
+
       return s;
     } catch (e) {
       print(e.toString());
       return null;
     }
+  }
+
+  void sendToSocket(String? message) {
+    _send('Message', {'to': 'axxx', 'from': 'fsdasda', 'message': message!});
   }
 
   Future<RTCSessionDescription?> createAnswer(
